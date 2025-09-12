@@ -41,8 +41,10 @@ class MutationObserver<TData, TError, TVariables, TContext>
   }
 
   /// This is "the" function responsible for the mutation.
-  Future<void> mutate(TVariables variables) async {
-    if (mutation.state.isPending) return;
+  Future<TData> mutate(TVariables variables) async {
+    if (mutation.state.isPending) {
+      throw StateError('Mutation is already pending');
+    }
 
     this.vars = variables;
     onMutationUpdated();
@@ -57,13 +59,16 @@ class MutationObserver<TData, TError, TVariables, TContext>
       data = await options.mutationFn(variables);
       mutation.dispatch(MutationDispatchAction.success, data);
       options.onSuccess?.call(data as TData, variables, ctx);
+      options.onSettled?.call(data, error, variables, ctx);
+      return data as TData;
     } catch (err) {
       data = null;
       error = err as TError;
       mutation.dispatch(MutationDispatchAction.error, error);
       options.onError?.call(error as TError, variables, ctx);
+      options.onSettled?.call(data, error, variables, ctx);
+      rethrow;
     }
-    options.onSettled?.call(data, error, variables, ctx);
   }
 
   /// Resets the mutation to its initial state.
