@@ -14,7 +14,7 @@ class UseMutationResult<TData, TError, TVariables> {
   final bool isSuccess;
   final bool isError;
   final MutationStatus status;
-  final Future<void> Function(TVariables) mutate;
+  final Future<TData> Function(TVariables) mutate;
   final DateTime? submittedAt;
   final void Function() reset;
   final TVariables? variables;
