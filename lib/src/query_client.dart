@@ -1,5 +1,7 @@
+import 'package:fquery/src/mutation_cache.dart';
 import 'package:fquery/src/query_cache.dart';
 import 'package:fquery/src/query_key.dart';
+
 import 'query.dart';
 
 class DefaultQueryOptions {
@@ -25,6 +27,7 @@ class DefaultQueryOptions {
 /// using [DefaultQueryOptions].
 class QueryClient {
   final QueryCache queryCache = QueryCache();
+  final MutationCache mutationCache = MutationCache();
   late DefaultQueryOptions defaultQueryOptions;
 
   QueryClient({DefaultQueryOptions? defaultQueryOptions}) {
@@ -122,9 +125,32 @@ class QueryClient {
     });
   }
 
-  int isFetching() {
-    return queryCache.queries.entries
-        .where((queryMap) => queryMap.value.state.isFetching)
+  int isFetching([RawQueryKey? queryKey, bool exact = false]) {
+    var filteredQueries = queryCache.queries.entries
+        .where((queryMap) => queryMap.value.state.isFetching);
+    
+    if (queryKey != null) {
+      filteredQueries = filteredQueries.where((queryMap) {
+        final currentQueryKey = queryMap.key;
+        
+        if (exact) {
+          return currentQueryKey.serialized == QueryKey(queryKey).serialized;
+        } else {
+          final isPartialMatch = currentQueryKey.raw.length >= queryKey.length &&
+              QueryKey(currentQueryKey.raw.sublist(0, queryKey.length)) == QueryKey(queryKey);
+          return isPartialMatch;
+        }
+      });
+    }
+    
+    return filteredQueries.length;
+  }
+
+  int isPending([RawQueryKey? queryKey]) {
+    // Note: Mutations don't have query keys, so queryKey parameter is ignored
+    // This parameter is kept for API consistency with isFetching()
+    return mutationCache.mutations.entries
+        .where((mutationMap) => mutationMap.value.mutation.state.isPending)
         .length;
   }
 }

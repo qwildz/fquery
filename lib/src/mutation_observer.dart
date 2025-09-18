@@ -9,6 +9,7 @@ class MutationObserver<TData, TError, TVariables, TContext>
   late UseMutationOptions<TData, TError, TVariables, TContext> options;
   late Mutation<TData, TError, TVariables, TContext> mutation;
   TVariables? vars;
+  int? _cacheId;
 
   MutationObserver({
     required this.client,
@@ -19,6 +20,9 @@ class MutationObserver<TData, TError, TVariables, TContext>
       observer: this,
     );
     _setOptions(options);
+
+    // Register with mutation cache
+    _cacheId = client.mutationCache.add(this);
   }
 
   /// Takes a [UseMutationOptions] and sets the [options] field.
@@ -46,7 +50,7 @@ class MutationObserver<TData, TError, TVariables, TContext>
       throw StateError('Mutation is already pending');
     }
 
-    this.vars = variables;
+    vars = variables;
     onMutationUpdated();
 
     mutation.dispatch(MutationDispatchAction.mutate, null);
@@ -82,5 +86,14 @@ class MutationObserver<TData, TError, TVariables, TContext>
     Future.delayed(Duration.zero, () {
       notifyListeners();
     });
+    client.mutationCache.onMutationUpdated();
+  }
+
+  /// Removes the mutation observer from the cache
+  void destroy() {
+    if (_cacheId != null) {
+      client.mutationCache.remove(_cacheId!);
+      _cacheId = null;
+    }
   }
 }

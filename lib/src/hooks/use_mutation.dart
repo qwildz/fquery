@@ -105,6 +105,12 @@ UseMutationResult<TData, TError, TVariables>
     return null;
   }, [observer, options]);
 
+  useEffect(() {
+    return () {
+      observer.destroy();
+    };
+  }, [observer]);
+
   // This subscribes to the observer
   // and rebuilds the widget on updates.
   useListenable(observer);
