@@ -13,6 +13,8 @@ class UseLazyQueryResult<TData, TError> {
   final bool isLoading;
   final bool isFetching;
   final bool isSuccess;
+  final bool hasData;
+  final bool isStale;
   final QueryStatus status;
   final Future<void> Function() refetch;
   final bool isInvalidated;
@@ -29,6 +31,8 @@ class UseLazyQueryResult<TData, TError> {
     required this.isLoading,
     required this.isFetching,
     required this.isSuccess,
+    required this.hasData,
+    required this.isStale,
     required this.status,
     required this.refetch,
     required this.isInvalidated,
@@ -226,6 +230,11 @@ UseLazyQueryResult<TData, TError> useLazyQuery<TData, TError>(
     isLoading: observer.query.state.isLoading,
     isFetching: observer.query.state.isFetching,
     isSuccess: observer.query.state.isSuccess,
+    hasData: observer.query.state.hasData,
+    isStale: observer.query.state.isStale(
+      options.staleDuration ??
+          observer.client.defaultQueryOptions.staleDuration,
+    ),
     status: observer.query.state.status,
     refetch: observer.fetch,
     isInvalidated: observer.query.state.isInvalidated,

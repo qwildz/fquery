@@ -1,7 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-
 import 'package:fquery/fquery.dart';
 import 'package:fquery/src/infinite_query_observer.dart';
 import 'package:fquery/src/query.dart';
@@ -66,6 +65,8 @@ class UseInfiniteQueryResult<TData, TError, TPageParam> {
   final bool isLoading;
   final bool isFetching;
   final bool isSuccess;
+  final bool hasData;
+  final bool isStale;
   final QueryStatus status;
   final bool isFetchingNextPage;
   final bool isFetchingPreviousPage;
@@ -88,6 +89,8 @@ class UseInfiniteQueryResult<TData, TError, TPageParam> {
     required this.isLoading,
     required this.isFetching,
     required this.isSuccess,
+    required this.hasData,
+    required this.isStale,
     required this.status,
     required this.isFetchingNextPage,
     required this.isFetchingPreviousPage,
@@ -267,6 +270,8 @@ UseInfiniteQueryResult<TData, TError, TPageParam>
     isLoading: observer.query.state.isLoading,
     isFetching: observer.query.state.isFetching,
     isSuccess: observer.query.state.isSuccess,
+    hasData: observer.query.state.hasData,
+    isStale: observer.query.state.isStale(observer.options.staleDuration),
     status: observer.query.state.status,
     isFetchNextPageError: isFetchNextPageError,
     isFetchPreviousPageError: isFetchPreviousPageError,
