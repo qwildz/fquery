@@ -163,8 +163,9 @@ class QueryCache extends ChangeNotifier {
           final now = DateTime.now();
           final age = now.difference(dataUpdatedAt);
 
-          // Use a reasonable cache duration (can be made configurable)
-          const maxCacheAge = Duration(minutes: 5);
+          // Use the query's configured cache duration or fallback to default
+          final maxCacheAge = query.cacheDuration ??
+              query.client.defaultQueryOptions.cacheDuration;
 
           debugPrint(
               'Checking if cached data for query ${queryKey.serialized} is still fresh, age: $age, maxCacheAge: $maxCacheAge');
@@ -172,6 +173,9 @@ class QueryCache extends ChangeNotifier {
             debugPrint(
                 'Loaded cached data for query ${queryKey.serialized} from storage');
             query.dispatch(DispatchAction.success, data);
+          } else {
+            debugPrint(
+                'Cached data for query ${queryKey.serialized} is too old, age: $age > maxCacheAge: $maxCacheAge');
           }
         }
       }

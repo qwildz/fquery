@@ -7,6 +7,9 @@ mixin Removable {
   Duration? _cacheDuration;
   Timer? _garbageCollectionTimer;
 
+  /// Gets the current cache duration
+  Duration? get cacheDuration => _cacheDuration;
+
   /// Sets the cache duration
   /// Max cacheDuration given by any observer is used
   /// Reschedules the garbage collection timer
