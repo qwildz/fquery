@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/widgets.dart';
 import 'package:fquery/src/query.dart';
 import 'package:fquery/src/query_client.dart';
@@ -56,7 +58,8 @@ class QueryCache extends ChangeNotifier {
 
     try {
       final serializedData = <String, dynamic>{
-        'data': _serializer?.serialize(query.state.data) ?? query.state.data,
+        'data': _serializer?.serialize(query.state.data) ??
+            jsonEncode(query.state.data),
         'dataUpdatedAt': query.state.dataUpdatedAt?.millisecondsSinceEpoch,
         'status': query.state.status.name,
       };
@@ -145,8 +148,8 @@ class QueryCache extends ChangeNotifier {
           'Retrieved data for query ${queryKey.serialized} from storage: $storedData');
 
       if (storedData != null) {
-        final data =
-            _serializer?.deserialize(storedData['data']) ?? storedData['data'];
+        final data = _serializer?.deserialize(storedData['data']) ??
+            jsonDecode(storedData['data']);
         final dataUpdatedAt = storedData['dataUpdatedAt'] != null
             ? DateTime.fromMillisecondsSinceEpoch(storedData['dataUpdatedAt'])
             : null;
