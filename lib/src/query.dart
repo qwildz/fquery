@@ -138,17 +138,21 @@ class Query<TData, TError> with Removable {
   }
 
   /// Dispatches an action to the reducer and notifies observers
-  void dispatch(DispatchAction action, dynamic data, {bool fromStorage = false}) {
+  void dispatch(DispatchAction action, dynamic data,
+      {bool fromStorage = false}) {
     _state = _reducer(state, action, data);
     _notifyListeners();
     client.queryCache.onQueryUpdated();
 
     // Store to persistent storage after successful fetch (but not when loading from storage)
+    // Only store if query has fromStorage callback enabled
     final storeToStorageActions = [
       DispatchAction.success,
       DispatchAction.refetchSequence,
     ];
-    if (storeToStorageActions.contains(action) && !fromStorage) {
+    if (storeToStorageActions.contains(action) &&
+        !fromStorage &&
+        hasStorageEnabled) {
       client.queryCache.storeToStorage(key, this);
     }
 
@@ -186,6 +190,16 @@ class Query<TData, TError> with Removable {
     for (var listener in _listeners) {
       listener.onQueryUpdated();
     }
+  }
+
+  /// Check if any observer has fromStorage callback enabled
+  bool get hasStorageEnabled {
+    return _listeners.any((listener) {
+      if (listener is Observer) {
+        return listener.fromStorage != null;
+      }
+      return false;
+    });
   }
 
   /// This is called when garbage collection timer fires

@@ -20,6 +20,7 @@ class UseQueriesOptions<TData, TError> extends UseQueryOptions<TData, TError> {
     super.staleDuration,
     super.retryCount,
     super.retryDelay,
+    super.fromStorage,
   });
 }
 

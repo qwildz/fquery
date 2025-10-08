@@ -16,6 +16,8 @@ class QueryBuilder<TData, TError> extends HookWidget {
   final Duration? refetchInterval;
   final int? retryCount;
   final Duration? retryDelay;
+  final void Function(
+      String jsonFromStorage, void Function(TData data) setData)? fromStorage;
 
   const QueryBuilder(
     this.queryKey,
@@ -29,6 +31,7 @@ class QueryBuilder<TData, TError> extends HookWidget {
     this.refetchInterval,
     this.retryCount,
     this.retryDelay,
+    this.fromStorage,
   });
 
   @override
@@ -43,6 +46,7 @@ class QueryBuilder<TData, TError> extends HookWidget {
       staleDuration: staleDuration,
       retryCount: retryCount,
       retryDelay: retryDelay,
+      fromStorage: fromStorage,
     );
 
     return Builder(builder: (context) {

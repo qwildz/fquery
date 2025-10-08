@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:fquery/src/hooks/use_query.dart';
 import 'package:fquery/src/query_key.dart';
 import 'package:fquery/src/query_listener.dart';
+
 import 'query.dart';
 import 'query_client.dart';
 import 'retry_resolver.dart';
@@ -20,6 +22,8 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
   late final Query<TData, TError> query;
 
   late QueryOptions<TData, TError> options;
+  void Function(String jsonFromStorage, void Function(TData data) setData)?
+      fromStorage;
   final resolver = RetryResolver();
   Timer? refetchTimer;
 
@@ -42,6 +46,12 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
   void initialize() {
     // Subcribe to any query state changes
     query.subscribe(this);
+
+    // Try to load from storage if fromStorage callback is provided
+    if (fromStorage != null) {
+      client.queryCache
+          .tryLoadFromStorage<TData>(queryKey, query, fromStorage!);
+    }
 
     // Initiate query on mount
     if (options.enabled == false) return;
@@ -84,6 +94,7 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
       retryCount: options.retryCount ?? client.defaultQueryOptions.retryCount,
       retryDelay: options.retryDelay ?? client.defaultQueryOptions.retryDelay,
     );
+    fromStorage = options.fromStorage;
   }
 
   /// This is usually called from the [useQuery] hook

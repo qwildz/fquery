@@ -49,6 +49,8 @@ class UseLazyQueryOptions<TData, TError> {
   final Duration? refetchInterval;
   final int? retryCount;
   final Duration? retryDelay;
+  final void Function(
+      String jsonFromStorage, void Function(TData data) setData)? fromStorage;
 
   UseLazyQueryOptions({
     this.refetchOnMount,
@@ -57,6 +59,7 @@ class UseLazyQueryOptions<TData, TError> {
     this.refetchInterval,
     this.retryCount,
     this.retryDelay,
+    this.fromStorage,
   });
 }
 
@@ -105,6 +108,8 @@ UseLazyQueryResult<TData, TError> useLazyQuery<TData, TError>(
   Duration? refetchInterval,
   int? retryCount,
   Duration? retryDelay,
+  void Function(String jsonFromStorage, void Function(TData data) setData)?
+      fromStorage,
 }) {
   final called = useState(false);
 
@@ -116,6 +121,7 @@ UseLazyQueryResult<TData, TError> useLazyQuery<TData, TError>(
       refetchInterval: refetchInterval,
       retryCount: retryCount,
       retryDelay: retryDelay,
+      fromStorage: fromStorage,
     ),
     [
       refetchOnMount,
@@ -123,7 +129,8 @@ UseLazyQueryResult<TData, TError> useLazyQuery<TData, TError>(
       cacheDuration,
       refetchInterval,
       retryCount,
-      retryDelay
+      retryDelay,
+      fromStorage,
     ],
   );
 
@@ -144,6 +151,7 @@ UseLazyQueryResult<TData, TError> useLazyQuery<TData, TError>(
         refetchInterval: options.refetchInterval,
         retryCount: options.retryCount,
         retryDelay: options.retryDelay,
+        fromStorage: options.fromStorage,
       ),
     );
     return;
@@ -169,6 +177,7 @@ UseLazyQueryResult<TData, TError> useLazyQuery<TData, TError>(
           refetchInterval: options.refetchInterval,
           retryCount: options.retryCount,
           retryDelay: options.retryDelay,
+          fromStorage: options.fromStorage,
         ),
       );
     }
@@ -191,6 +200,7 @@ UseLazyQueryResult<TData, TError> useLazyQuery<TData, TError>(
         refetchInterval: options.refetchInterval,
         retryCount: options.retryCount,
         retryDelay: options.retryDelay,
+        fromStorage: options.fromStorage,
       ));
     });
     return;
@@ -217,6 +227,7 @@ UseLazyQueryResult<TData, TError> useLazyQuery<TData, TError>(
       refetchInterval: options.refetchInterval,
       retryCount: options.retryCount,
       retryDelay: options.retryDelay,
+      fromStorage: options.fromStorage,
     ));
     return observer.fetch();
   }, [observer, options]);

@@ -55,7 +55,6 @@ class QueryClient {
 
     queryCache = QueryCache(
       storage: effectiveQueryStorage,
-      serializer: effectiveSerializer,
     );
 
     mutationCache = MutationCache(

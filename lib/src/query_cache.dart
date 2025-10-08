@@ -11,15 +11,12 @@ typedef QueriesMap = Map<QueryKey, Query>;
 class QueryCache extends ChangeNotifier {
   final QueriesMap _queries = {};
   final StorageBackend<String, dynamic>? _storage;
-  final StorageSerializer<dynamic>? _serializer;
 
   QueriesMap get queries => _queries;
 
   QueryCache({
     StorageBackend<String, dynamic>? storage,
-    StorageSerializer<dynamic>? serializer,
-  })  : _storage = storage,
-        _serializer = serializer;
+  }) : _storage = storage;
 
   /// Initialize the storage backend if provided.
   Future<void> initialize() async {
@@ -53,6 +50,22 @@ class QueryCache extends ChangeNotifier {
   }
 
   /// Store query data to storage if available.
+  /// Only stores for queries that have fromStorage callback enabled.
+  ///
+  /// Data is stored as JSON string for user to parse with their fromStorage callback.
+  ///
+  /// Example usage:
+  /// ```dart
+  /// final posts = useQuery<List<Post>, Error>(
+  ///   ['posts'],
+  ///   fetchPosts,
+  ///   fromStorage: (jsonString, setData) {
+  ///     final List<dynamic> jsonList = json.decode(jsonString);
+  ///     final posts = jsonList.map((e) => Post.fromJson(e)).toList();
+  ///     setData(posts);
+  ///   },
+  /// );
+  /// ```
   Future<void> storeToStorage(QueryKey queryKey, Query query) async {
     debugPrint(
         'Attempting to store query ${queryKey.serialized} to storage with data: ${query.state.data}');
@@ -64,8 +77,7 @@ class QueryCache extends ChangeNotifier {
           'Storing cached query ${queryKey.serialized} to storage with data: ${query.state.data}');
 
       final serializedData = <String, dynamic>{
-        'data': _serializer?.serialize(query.state.data) ??
-            jsonEncode(query.state.data),
+        'data': jsonEncode(query.state.data),
         'dataUpdatedAt': query.state.dataUpdatedAt?.millisecondsSinceEpoch,
         'status': query.state.status.name,
       };
@@ -132,15 +144,18 @@ class QueryCache extends ChangeNotifier {
     } catch (e) {
       query = Query(client: client, key: queryKey);
       add(queryKey, query);
-
-      // Try to load data from storage if available
-      _loadQueryFromStorage(queryKey, query);
+      // Note: Storage loading is now handled by Observer after setup
     }
     return query;
   }
 
-  /// Load specific query data from storage if available.
-  Future<void> _loadQueryFromStorage(QueryKey queryKey, Query query) async {
+  /// Try to load data from storage for a query with fromStorage callback.
+  /// Called by Observer after setup is complete.
+  Future<void> tryLoadFromStorage<TData>(
+      QueryKey queryKey,
+      Query query,
+      void Function(String jsonFromStorage, void Function(TData data) setData)
+          fromStorageCallback) async {
     if (_storage == null) return;
 
     debugPrint('Loading cached query ${queryKey.serialized} from storage');
@@ -152,8 +167,6 @@ class QueryCache extends ChangeNotifier {
           'Retrieved data for query ${queryKey.serialized} from storage: $storedData');
 
       if (storedData != null) {
-        final data = _serializer?.deserialize(storedData['data']) ??
-            jsonDecode(storedData['data']);
         final dataUpdatedAt = storedData['dataUpdatedAt'] != null
             ? DateTime.fromMillisecondsSinceEpoch(storedData['dataUpdatedAt'])
             : null;
@@ -161,8 +174,8 @@ class QueryCache extends ChangeNotifier {
         debugPrint(
             'Cached data for query ${queryKey.serialized} found in storage, dataUpdatedAt: $dataUpdatedAt');
 
-        // If we have valid cached data, initialize the query with it
-        if (data != null && dataUpdatedAt != null) {
+        // If we have valid cached data, check if it's still fresh
+        if (dataUpdatedAt != null) {
           debugPrint(
               'Restoring cached data for query ${queryKey.serialized} from storage');
 
@@ -179,7 +192,13 @@ class QueryCache extends ChangeNotifier {
           if (age <= maxCacheAge) {
             debugPrint(
                 'Loaded cached data for query ${queryKey.serialized} from storage');
-            query.dispatch(DispatchAction.success, data, fromStorage: true);
+
+            // Call user's fromStorage callback with the JSON string and setData function
+            final jsonString = storedData['data'] as String;
+            fromStorageCallback(jsonString, (TData data) {
+              // User parsed the data, now set it in the query
+              query.dispatch(DispatchAction.success, data, fromStorage: true);
+            });
           } else {
             debugPrint(
                 'Cached data for query ${queryKey.serialized} is too old, age: $age > maxCacheAge: $maxCacheAge');
@@ -188,7 +207,8 @@ class QueryCache extends ChangeNotifier {
       }
     } catch (e) {
       // Handle storage loading errors gracefully
-      debugPrint('Failed to load query from storage: $e');
+      debugPrint(
+          'Failed to load query ${queryKey.serialized} from storage: $e');
     }
   }
 
