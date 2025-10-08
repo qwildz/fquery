@@ -138,10 +138,19 @@ class Query<TData, TError> with Removable {
   }
 
   /// Dispatches an action to the reducer and notifies observers
-  void dispatch(DispatchAction action, dynamic data) {
+  void dispatch(DispatchAction action, dynamic data, {bool fromStorage = false}) {
     _state = _reducer(state, action, data);
     _notifyListeners();
     client.queryCache.onQueryUpdated();
+
+    // Store to persistent storage after successful fetch (but not when loading from storage)
+    final storeToStorageActions = [
+      DispatchAction.success,
+      DispatchAction.refetchSequence,
+    ];
+    if (storeToStorageActions.contains(action) && !fromStorage) {
+      client.queryCache.storeToStorage(key, this);
+    }
 
     // Refetching is scheduled here after success or error
     final scheduleRefetchActions = [

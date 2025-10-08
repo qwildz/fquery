@@ -53,7 +53,7 @@ class QueryCache extends ChangeNotifier {
   }
 
   /// Store query data to storage if available.
-  Future<void> _storeToStorage(QueryKey queryKey, Query query) async {
+  Future<void> storeToStorage(QueryKey queryKey, Query query) async {
     debugPrint(
         'Attempting to store query ${queryKey.serialized} to storage with data: ${query.state.data}');
 
@@ -101,8 +101,6 @@ class QueryCache extends ChangeNotifier {
 
   void add(QueryKey queryKey, Query query) {
     _queries[queryKey] = query;
-    // Store to persistent storage if available
-    _storeToStorage(queryKey, query);
     onQueryUpdated();
   }
 
@@ -181,7 +179,7 @@ class QueryCache extends ChangeNotifier {
           if (age <= maxCacheAge) {
             debugPrint(
                 'Loaded cached data for query ${queryKey.serialized} from storage');
-            query.dispatch(DispatchAction.success, data);
+            query.dispatch(DispatchAction.success, data, fromStorage: true);
           } else {
             debugPrint(
                 'Cached data for query ${queryKey.serialized} is too old, age: $age > maxCacheAge: $maxCacheAge');
