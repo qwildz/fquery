@@ -204,8 +204,8 @@ class Query<TData, TError> with Removable {
 
   /// This is called when garbage collection timer fires
   @override
-  void onGarbageCollection() {
+  Future<void> onGarbageCollection() async {
     super.onGarbageCollection();
-    client.queryCache.remove(this);
+    await client.queryCache.remove(this);
   }
 }

@@ -152,8 +152,8 @@ class QueryClient {
   void removeQueries(RawQueryKey key, {bool exact = false}) {
     queryCache.queries.forEach((queryKey, query) {
       void action() {
-        Future.delayed(Duration.zero, () {
-          queryCache.remove(query);
+        Future.delayed(Duration.zero, () async {
+          await queryCache.remove(query);
         });
       }
 

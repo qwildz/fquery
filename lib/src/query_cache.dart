@@ -119,17 +119,9 @@ class QueryCache extends ChangeNotifier {
     onQueryUpdated();
   }
 
-  void remove(Query query) {
-    final keyToRemove = _queries.entries
-        .where((entry) => entry.value == query)
-        .map((entry) => entry.key)
-        .firstOrNull;
-
-    if (keyToRemove != null) {
-      _queries.removeWhere((key, value) => value == query);
-      // Remove from persistent storage if available
-      _removeFromStorage(keyToRemove);
-    }
+  Future<void> remove(Query query) async {
+    _queries.removeWhere((key, value) => value == query);
+    await _removeFromStorage(query.key);
     onQueryUpdated();
   }
 
