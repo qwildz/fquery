@@ -1,6 +1,7 @@
 import 'package:fquery/src/mutation_cache.dart';
 import 'package:fquery/src/query_cache.dart';
 import 'package:fquery/src/query_key.dart';
+import 'package:fquery/src/storage/storage_backend.dart';
 
 import 'query.dart';
 
@@ -11,6 +12,9 @@ class DefaultQueryOptions {
   final Duration? refetchInterval;
   final int retryCount;
   final Duration retryDelay;
+  final StorageBackend<String, Map<String, dynamic>>? queryStorage;
+  final StorageBackend<String, Map<String, dynamic>>? mutationStorage;
+  final StorageSerializer<dynamic>? storageSerializer;
 
   DefaultQueryOptions({
     this.refetchOnMount = RefetchOnMount.stale,
@@ -19,6 +23,9 @@ class DefaultQueryOptions {
     this.refetchInterval,
     this.retryCount = 3,
     this.retryDelay = const Duration(seconds: 1, milliseconds: 500),
+    this.queryStorage,
+    this.mutationStorage,
+    this.storageSerializer,
   });
 }
 
@@ -26,12 +33,49 @@ class DefaultQueryOptions {
 /// Can also be used to configure queries on a global basis
 /// using [DefaultQueryOptions].
 class QueryClient {
-  final QueryCache queryCache = QueryCache();
-  final MutationCache mutationCache = MutationCache();
+  late final QueryCache queryCache;
+  late final MutationCache mutationCache;
   late DefaultQueryOptions defaultQueryOptions;
 
-  QueryClient({DefaultQueryOptions? defaultQueryOptions}) {
+  QueryClient({
+    DefaultQueryOptions? defaultQueryOptions,
+    StorageBackend<String, Map<String, dynamic>>? queryStorage,
+    StorageBackend<String, Map<String, dynamic>>? mutationStorage,
+    StorageSerializer<dynamic>? storageSerializer,
+  }) {
     this.defaultQueryOptions = defaultQueryOptions ?? DefaultQueryOptions();
+
+    // Use storage from defaultQueryOptions if provided, otherwise use constructor parameters
+    final effectiveQueryStorage =
+        this.defaultQueryOptions.queryStorage ?? queryStorage;
+    final effectiveMutationStorage =
+        this.defaultQueryOptions.mutationStorage ?? mutationStorage;
+    final effectiveSerializer =
+        this.defaultQueryOptions.storageSerializer ?? storageSerializer;
+
+    queryCache = QueryCache(
+      storage: effectiveQueryStorage,
+      serializer: effectiveSerializer,
+    );
+
+    mutationCache = MutationCache(
+      storage: effectiveMutationStorage,
+      serializer: effectiveSerializer,
+    );
+  }
+
+  /// Initialize the query client and its storage backends.
+  /// Call this method before using the query client, especially if using persistent storage.
+  Future<void> initialize() async {
+    await queryCache.initialize();
+    await mutationCache.initialize();
+  }
+
+  /// Dispose the query client and its storage backends.
+  /// Call this when the query client is no longer needed.
+  Future<void> dispose() async {
+    await queryCache.dispose();
+    await mutationCache.dispose();
   }
 
   /// Sets the query cache idendifiable by the given query key.
@@ -128,21 +172,23 @@ class QueryClient {
   int isFetching([RawQueryKey? queryKey, bool exact = false]) {
     var filteredQueries = queryCache.queries.entries
         .where((queryMap) => queryMap.value.state.isFetching);
-    
+
     if (queryKey != null) {
       filteredQueries = filteredQueries.where((queryMap) {
         final currentQueryKey = queryMap.key;
-        
+
         if (exact) {
           return currentQueryKey.serialized == QueryKey(queryKey).serialized;
         } else {
-          final isPartialMatch = currentQueryKey.raw.length >= queryKey.length &&
-              QueryKey(currentQueryKey.raw.sublist(0, queryKey.length)) == QueryKey(queryKey);
+          final isPartialMatch =
+              currentQueryKey.raw.length >= queryKey.length &&
+                  QueryKey(currentQueryKey.raw.sublist(0, queryKey.length)) ==
+                      QueryKey(queryKey);
           return isPartialMatch;
         }
       });
     }
-    
+
     return filteredQueries.length;
   }
 
