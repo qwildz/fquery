@@ -22,8 +22,7 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
   late final Query<TData, TError> query;
 
   late QueryOptions<TData, TError> options;
-  void Function(String jsonFromStorage, void Function(TData data) setData)?
-      fromStorage;
+  dynamic Function(dynamic dataFromStorage)? dataFromStorage;
   final resolver = RetryResolver();
   Timer? refetchTimer;
 
@@ -47,11 +46,11 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
     // Subcribe to any query state changes
     query.subscribe(this);
 
-    // Try to load from storage if fromStorage callback is provided
+    // Try to load from storage if dataFromStorage callback is provided
     bool loadedFromStorage = false;
-    if (fromStorage != null) {
+    if (dataFromStorage != null) {
       loadedFromStorage = await client.queryCache
-          .tryLoadFromStorage<TData>(queryKey, query, fromStorage!);
+          .tryLoadFromStorage<TData>(queryKey, query, dataFromStorage!);
     }
 
     // Initiate query on mount
@@ -119,7 +118,7 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
       retryCount: options.retryCount ?? client.defaultQueryOptions.retryCount,
       retryDelay: options.retryDelay ?? client.defaultQueryOptions.retryDelay,
     );
-    fromStorage = options.fromStorage;
+    dataFromStorage = options.dataFromStorage;
   }
 
   /// This is usually called from the [useQuery] hook

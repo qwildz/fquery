@@ -145,7 +145,7 @@ class Query<TData, TError> with Removable {
     client.queryCache.onQueryUpdated();
 
     // Store to persistent storage after successful fetch (but not when loading from storage)
-    // Only store if query has fromStorage callback enabled
+    // Only store if query has dataFromStorage callback enabled
     final storeToStorageActions = [
       DispatchAction.success,
       DispatchAction.refetchSequence,
@@ -192,11 +192,11 @@ class Query<TData, TError> with Removable {
     }
   }
 
-  /// Check if any observer has fromStorage callback enabled
+  /// Check if any observer has dataFromStorage callback enabled
   bool get hasStorageEnabled {
     return _listeners.any((listener) {
       if (listener is Observer) {
-        return listener.fromStorage != null;
+        return listener.dataFromStorage != null;
       }
       return false;
     });

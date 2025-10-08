@@ -46,8 +46,7 @@ class UseQueryOptions<TData, TError> {
   final Duration? refetchInterval;
   final int? retryCount;
   final Duration? retryDelay;
-  final void Function(
-      String jsonFromStorage, void Function(TData data) setData)? fromStorage;
+  final dynamic Function(dynamic dataFromStorage)? dataFromStorage;
 
   UseQueryOptions({
     required this.enabled,
@@ -57,7 +56,7 @@ class UseQueryOptions<TData, TError> {
     this.refetchInterval,
     this.retryCount,
     this.retryDelay,
-    this.fromStorage,
+    this.dataFromStorage,
   });
 }
 
@@ -98,8 +97,7 @@ UseQueryResult<TData, TError> useQuery<TData, TError>(
   Duration? refetchInterval,
   int? retryCount,
   Duration? retryDelay,
-  void Function(String jsonFromStorage, void Function(TData data) setData)?
-      fromStorage,
+  dynamic Function(dynamic dataFromStorage)? dataFromStorage,
 }) {
   final options = useMemoized(
     () => UseQueryOptions<TData, TError>(
@@ -110,7 +108,7 @@ UseQueryResult<TData, TError> useQuery<TData, TError>(
       refetchInterval: refetchInterval,
       retryCount: retryCount,
       retryDelay: retryDelay,
-      fromStorage: fromStorage,
+      dataFromStorage: dataFromStorage,
     ),
     [
       enabled,
@@ -120,7 +118,7 @@ UseQueryResult<TData, TError> useQuery<TData, TError>(
       refetchInterval,
       retryCount,
       retryDelay,
-      fromStorage,
+      dataFromStorage,
     ],
   );
   final client = useQueryClient();
