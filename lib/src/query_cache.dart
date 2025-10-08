@@ -151,12 +151,13 @@ class QueryCache extends ChangeNotifier {
 
   /// Try to load data from storage for a query with fromStorage callback.
   /// Called by Observer after setup is complete.
-  Future<void> tryLoadFromStorage<TData>(
+  /// Returns true if data was successfully loaded from storage, false otherwise.
+  Future<bool> tryLoadFromStorage<TData>(
       QueryKey queryKey,
       Query query,
       void Function(String jsonFromStorage, void Function(TData data) setData)
           fromStorageCallback) async {
-    if (_storage == null) return;
+    if (_storage == null) return false;
 
     debugPrint('Loading cached query ${queryKey.serialized} from storage');
 
@@ -199,6 +200,7 @@ class QueryCache extends ChangeNotifier {
               // User parsed the data, now set it in the query
               query.dispatch(DispatchAction.success, data, fromStorage: true);
             });
+            return true; // Successfully loaded from storage
           } else {
             debugPrint(
                 'Cached data for query ${queryKey.serialized} is too old, age: $age > maxCacheAge: $maxCacheAge');
@@ -210,6 +212,7 @@ class QueryCache extends ChangeNotifier {
       debugPrint(
           'Failed to load query ${queryKey.serialized} from storage: $e');
     }
+    return false; // Failed to load from storage
   }
 
   void onQueryUpdated() {

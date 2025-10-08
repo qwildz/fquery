@@ -43,13 +43,14 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
 
   // This is called from the [useQuery] hook
   // whenever the first widget build is done
-  void initialize() {
+  void initialize() async {
     // Subcribe to any query state changes
     query.subscribe(this);
 
     // Try to load from storage if fromStorage callback is provided
+    bool loadedFromStorage = false;
     if (fromStorage != null) {
-      client.queryCache
+      loadedFromStorage = await client.queryCache
           .tryLoadFromStorage<TData>(queryKey, query, fromStorage!);
     }
 
@@ -57,6 +58,30 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
     if (options.enabled == false) return;
     final isRefetching = !query.state.isLoading;
     final isInvalidated = query.state.isInvalidated;
+
+    // If we loaded fresh data from storage, don't fetch unless explicitly required
+    if (loadedFromStorage && query.state.data != null) {
+      // Only fetch if data is stale based on staleDuration
+      final dataUpdatedAt = query.state.dataUpdatedAt;
+      if (dataUpdatedAt != null) {
+        final staleAt = dataUpdatedAt.add(options.staleDuration);
+        final isStale = staleAt.isBefore(DateTime.now());
+
+        // Only fetch if data is stale and refetchOnMount allows it
+        if (isStale) {
+          switch (options.refetchOnMount) {
+            case RefetchOnMount.always:
+            case RefetchOnMount.stale:
+              fetch();
+              break;
+            case RefetchOnMount.never:
+              break;
+          }
+        }
+        // If data is fresh, don't fetch at all
+        return;
+      }
+    }
 
     // [RefetchOnMount] behaviour is specified here
     if (isRefetching && !isInvalidated) {
