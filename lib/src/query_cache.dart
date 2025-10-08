@@ -61,6 +61,7 @@ class QueryCache extends ChangeNotifier {
         'status': query.state.status.name,
       };
 
+      debugPrint('Storing cached query ${queryKey.serialized} to storage');
       await _storage!.set(queryKey.serialized, serializedData);
     } catch (e) {
       // Handle storage errors gracefully
@@ -73,6 +74,7 @@ class QueryCache extends ChangeNotifier {
     if (_storage == null) return;
 
     try {
+      debugPrint('Removing cached query ${queryKey.serialized} from storage');
       await _storage!.remove(queryKey.serialized);
     } catch (e) {
       // Handle storage errors gracefully
@@ -153,6 +155,8 @@ class QueryCache extends ChangeNotifier {
           const maxCacheAge = Duration(minutes: 5);
 
           if (age <= maxCacheAge) {
+            debugPrint(
+                'Loaded cached data for query ${queryKey.serialized} from storage');
             query.dispatch(DispatchAction.success, data);
           }
         }

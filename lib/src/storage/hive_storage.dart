@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
+
 import 'storage_backend.dart';
 
 /// Hive-based persistent storage backend for FQuery caches.
@@ -147,6 +149,8 @@ class HiveStorage<K, V> implements StorageBackend<K, V> {
   @override
   Future<Map<K, V>> entries() async {
     _ensureInitialized();
+    debugPrint('Fetching all entries from Hive storage');
+
     final result = <K, V>{};
     for (final key in await keys()) {
       final value = await get(key);
@@ -154,6 +158,8 @@ class HiveStorage<K, V> implements StorageBackend<K, V> {
         result[key] = value;
       }
     }
+
+    debugPrint('Fetched ${result.length} entries from Hive storage');
     return result;
   }
 
