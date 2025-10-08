@@ -6,14 +6,14 @@ typedef MutationsMap = Map<int, MutationObserver>;
 
 class MutationCache extends ChangeNotifier {
   final MutationsMap _mutations = {};
-  final StorageBackend<String, Map<String, dynamic>>? _storage;
+  final StorageBackend<String, dynamic>? _storage;
   final StorageSerializer<dynamic>? _serializer;
 
   MutationsMap get mutations => _mutations;
   int _nextId = 0;
 
   MutationCache({
-    StorageBackend<String, Map<String, dynamic>>? storage,
+    StorageBackend<String, dynamic>? storage,
     StorageSerializer<dynamic>? serializer,
   })  : _storage = storage,
         _serializer = serializer;

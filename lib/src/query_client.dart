@@ -12,8 +12,8 @@ class DefaultQueryOptions {
   final Duration? refetchInterval;
   final int retryCount;
   final Duration retryDelay;
-  final StorageBackend<String, Map<String, dynamic>>? queryStorage;
-  final StorageBackend<String, Map<String, dynamic>>? mutationStorage;
+  final StorageBackend<String, dynamic>? queryStorage;
+  final StorageBackend<String, dynamic>? mutationStorage;
   final StorageSerializer<dynamic>? storageSerializer;
 
   DefaultQueryOptions({
@@ -39,8 +39,8 @@ class QueryClient {
 
   QueryClient({
     DefaultQueryOptions? defaultQueryOptions,
-    StorageBackend<String, Map<String, dynamic>>? queryStorage,
-    StorageBackend<String, Map<String, dynamic>>? mutationStorage,
+    StorageBackend<String, dynamic>? queryStorage,
+    StorageBackend<String, dynamic>? mutationStorage,
     StorageSerializer<dynamic>? storageSerializer,
   }) {
     this.defaultQueryOptions = defaultQueryOptions ?? DefaultQueryOptions();

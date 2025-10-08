@@ -58,6 +58,8 @@ List<UseQueryResult<TData, TError>> useQueries<TData, TError>(
           isFetching: observer.query.state.isFetching,
           isSuccess: observer.query.state.isSuccess,
           status: observer.query.state.status,
+          hasData: observer.query.state.hasData,
+          isStale: observer.query.state.isStale(observer.options.staleDuration),
           refetch: observer.fetch,
           isInvalidated: observer.query.state.isInvalidated,
           isRefetchError: observer.query.state.isRefetchError,

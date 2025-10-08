@@ -8,13 +8,13 @@ typedef QueriesMap = Map<QueryKey, Query>;
 
 class QueryCache extends ChangeNotifier {
   final QueriesMap _queries = {};
-  final StorageBackend<String, Map<String, dynamic>>? _storage;
+  final StorageBackend<String, dynamic>? _storage;
   final StorageSerializer<dynamic>? _serializer;
 
   QueriesMap get queries => _queries;
 
   QueryCache({
-    StorageBackend<String, Map<String, dynamic>>? storage,
+    StorageBackend<String, dynamic>? storage,
     StorageSerializer<dynamic>? serializer,
   })  : _storage = storage,
         _serializer = serializer;

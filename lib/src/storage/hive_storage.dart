@@ -12,10 +12,10 @@ import 'storage_backend.dart';
 /// ```dart
 /// await Hive.initFlutter();
 /// final box = await Hive.openBox('fquery_cache');
-/// final storage = HiveStorage<String, Map<String, dynamic>>(
+/// final storage = HiveStorage<String, dynamic>(
 ///   boxName: 'fquery_cache',
 ///   hiveBox: box,
-///   serializer: JsonStorageSerializer(),
+///   serializer: const SimpleJsonSerializer(),
 /// );
 /// await storage.initialize();
 ///
@@ -27,12 +27,24 @@ import 'storage_backend.dart';
 /// Example usage with Hive instance:
 /// ```dart
 /// await Hive.initFlutter();
-/// final storage = HiveStorage<String, Map<String, dynamic>>(
+/// final storage = HiveStorage<String, dynamic>(
 ///   boxName: 'fquery_cache',
 ///   hive: Hive,
-///   serializer: JsonStorageSerializer(),
+///   serializer: const SimpleJsonSerializer(),
 /// );
 /// await storage.initialize();
+/// ```
+///
+/// Example with custom model:
+/// ```dart
+/// final storage = HiveStorage<String, User>(
+///   boxName: 'user_cache',
+///   hive: Hive,
+///   serializer: JsonStorageSerializer<User>(
+///     fromJson: User.fromJson,
+///     toJson: (user) => user.toJson(),
+///   ),
+/// );
 /// ```
 class HiveStorage<K, V> implements StorageBackend<K, V> {
   final String? boxName;
@@ -173,10 +185,10 @@ class HiveStorage<K, V> implements StorageBackend<K, V> {
 /// JSON serializer for use with HiveStorage.
 /// This serializer converts objects to/from JSON format for storage.
 class JsonStorageSerializer<T> implements StorageSerializer<T> {
-  final T Function(Map<String, dynamic>) fromJson;
-  final Map<String, dynamic> Function(T) toJson;
+  final T Function(dynamic) fromJson;
+  final dynamic Function(T) toJson;
 
-  JsonStorageSerializer({
+  const JsonStorageSerializer({
     required this.fromJson,
     required this.toJson,
   });
@@ -186,10 +198,6 @@ class JsonStorageSerializer<T> implements StorageSerializer<T> {
 
   @override
   T deserialize(dynamic data) {
-    if (data is Map<String, dynamic>) {
-      return fromJson(data);
-    }
-    throw ArgumentError(
-        'Expected Map<String, dynamic>, got ${data.runtimeType}');
+    return fromJson(data);
   }
 }

@@ -9,22 +9,22 @@ import 'storage_backend.dart';
 ///
 /// Example usage:
 /// ```dart
-/// class DatabaseStorage extends CustomStorage<String, Map<String, dynamic>> {
+/// class DatabaseStorage extends CustomStorage<String, dynamic> {
 ///   final Database database;
 ///
 ///   DatabaseStorage(this.database);
 ///
 ///   @override
-///   Future<Map<String, dynamic>?> get(String key) async {
+///   Future<dynamic?> get(String key) async {
 ///     final result = await database.query('cache', where: 'key = ?', whereArgs: [key]);
 ///     if (result.isNotEmpty) {
-///       return Map<String, dynamic>.from(result.first);
+///       return dynamic.from(result.first);
 ///     }
 ///     return null;
 ///   }
 ///
 ///   @override
-///   Future<void> set(String key, Map<String, dynamic> value) async {
+///   Future<void> set(String key, dynamic value) async {
 ///     await database.insert('cache', {'key': key, ...value},
 ///       conflictAlgorithm: ConflictAlgorithm.replace);
 ///   }
