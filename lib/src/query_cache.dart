@@ -54,9 +54,15 @@ class QueryCache extends ChangeNotifier {
 
   /// Store query data to storage if available.
   Future<void> _storeToStorage(QueryKey queryKey, Query query) async {
+    debugPrint(
+        'Attempting to store query ${queryKey.serialized} to storage with data: ${query.state.data}');
+
     if (_storage == null || query.state.data == null) return;
 
     try {
+      debugPrint(
+          'Storing cached query ${queryKey.serialized} to storage with data: ${query.state.data}');
+
       final serializedData = <String, dynamic>{
         'data': _serializer?.serialize(query.state.data) ??
             jsonEncode(query.state.data),
