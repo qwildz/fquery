@@ -136,8 +136,14 @@ class QueryCache extends ChangeNotifier {
   Future<void> _loadQueryFromStorage(QueryKey queryKey, Query query) async {
     if (_storage == null) return;
 
+    debugPrint('Loading cached query ${queryKey.serialized} from storage');
+
     try {
       final storedData = await _storage!.get(queryKey.serialized);
+
+      debugPrint(
+          'Retrieved data for query ${queryKey.serialized} from storage: $storedData');
+
       if (storedData != null) {
         final data =
             _serializer?.deserialize(storedData['data']) ?? storedData['data'];
@@ -145,8 +151,14 @@ class QueryCache extends ChangeNotifier {
             ? DateTime.fromMillisecondsSinceEpoch(storedData['dataUpdatedAt'])
             : null;
 
+        debugPrint(
+            'Cached data for query ${queryKey.serialized} found in storage, dataUpdatedAt: $dataUpdatedAt');
+
         // If we have valid cached data, initialize the query with it
         if (data != null && dataUpdatedAt != null) {
+          debugPrint(
+              'Restoring cached data for query ${queryKey.serialized} from storage');
+
           // Only load if the cached data is still fresh enough
           final now = DateTime.now();
           final age = now.difference(dataUpdatedAt);
@@ -154,6 +166,8 @@ class QueryCache extends ChangeNotifier {
           // Use a reasonable cache duration (can be made configurable)
           const maxCacheAge = Duration(minutes: 5);
 
+          debugPrint(
+              'Checking if cached data for query ${queryKey.serialized} is still fresh, age: $age, maxCacheAge: $maxCacheAge');
           if (age <= maxCacheAge) {
             debugPrint(
                 'Loaded cached data for query ${queryKey.serialized} from storage');
