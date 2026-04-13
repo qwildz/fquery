@@ -26,6 +26,7 @@ class MutationCache extends ChangeNotifier {
   /// Dispose the storage backend if provided.
   Future<void> dispose() async {
     await _storage?.dispose();
+    _mutations.clear();
     super.dispose();
   }
 

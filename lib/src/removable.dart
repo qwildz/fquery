@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:math';
 
-import 'package:fquery/fquery.dart';
+/// Default cache duration used when no observer specifies one.
+const _defaultCacheDuration = Duration(minutes: 5);
 
 mixin Removable {
   Duration? _cacheDuration;
@@ -10,15 +10,10 @@ mixin Removable {
   /// Gets the current cache duration
   Duration? get cacheDuration => _cacheDuration;
 
-  /// Sets the cache duration
-  /// Max cacheDuration given by any observer is used
-  /// Reschedules the garbage collection timer
+  /// Sets the cache duration and reschedules the garbage collection timer.
+  /// The most recently set value is used (allows dynamic durations to update).
   void setCacheDuration(Duration cacheDuration) {
-    _cacheDuration = Duration(
-        milliseconds: max(
-      (_cacheDuration ?? Duration.zero).inMilliseconds,
-      cacheDuration.inMilliseconds,
-    ));
+    _cacheDuration = cacheDuration;
     scheduleGarbageCollection();
   }
 
@@ -28,7 +23,7 @@ mixin Removable {
 
   void scheduleGarbageCollection() {
     _garbageCollectionTimer?.cancel();
-    final duration = _cacheDuration ?? DefaultQueryOptions().cacheDuration;
+    final duration = _cacheDuration ?? _defaultCacheDuration;
     _garbageCollectionTimer = Timer(duration, onGarbageCollection);
   }
 

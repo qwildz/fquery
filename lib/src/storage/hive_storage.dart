@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-
 import 'storage_backend.dart';
 
 /// Hive-based persistent storage backend for FQuery caches.
@@ -56,6 +54,10 @@ class HiveStorage<K, V> implements StorageBackend<K, V> {
   bool _isInitialized = false;
   dynamic _managedBox; // Box opened by this storage instance
 
+  /// Lock to serialize Hive operations and prevent concurrent access
+  /// that causes RangeError in Hive's internal IndexableSkipList.
+  final _lock = _AsyncLock();
+
   HiveStorage({
     this.boxName,
     this.hiveBox,
@@ -98,82 +100,86 @@ class HiveStorage<K, V> implements StorageBackend<K, V> {
   dynamic get _activeBox => hiveBox ?? _managedBox;
 
   @override
-  Future<V?> get(K key) async {
-    _ensureInitialized();
-    final value = await _activeBox.get(key);
-    if (value == null) return null;
+  Future<V?> get(K key) => _lock.synchronized(() async {
+        _ensureInitialized();
+        final value = await _activeBox.get(key);
+        if (value == null) return null;
 
-    if (serializer != null) {
-      return serializer!.deserialize(value);
-    }
-    return value as V?;
-  }
-
-  @override
-  Future<void> set(K key, V value) async {
-    _ensureInitialized();
-    final serializedValue = serializer?.serialize(value) ?? value;
-    await _activeBox.put(key, serializedValue);
-  }
+        if (serializer != null) {
+          return serializer!.deserialize(value);
+        }
+        return value as V?;
+      });
 
   @override
-  Future<bool> remove(K key) async {
-    _ensureInitialized();
-    final existed = await _activeBox.containsKey(key);
-    await _activeBox.delete(key);
-    return existed;
-  }
+  Future<void> set(K key, V value) => _lock.synchronized(() async {
+        _ensureInitialized();
+        final serializedValue = serializer?.serialize(value) ?? value;
+        await _activeBox.put(key, serializedValue);
+      });
 
   @override
-  Future<void> clear() async {
-    _ensureInitialized();
-    await _activeBox.clear();
-  }
+  Future<bool> remove(K key) => _lock.synchronized(() async {
+        _ensureInitialized();
+        final existed = await _activeBox.containsKey(key);
+        await _activeBox.delete(key);
+        return existed;
+      });
 
   @override
-  Future<Iterable<K>> keys() async {
-    _ensureInitialized();
-    return _activeBox.keys.cast<K>();
-  }
+  Future<void> clear() => _lock.synchronized(() async {
+        _ensureInitialized();
+        await _activeBox.clear();
+      });
 
   @override
-  Future<Iterable<V>> values() async {
-    _ensureInitialized();
-    final values = _activeBox.values;
-    if (serializer != null) {
-      return values.map((value) => serializer!.deserialize(value)).cast<V>();
-    }
-    return values.cast<V>();
-  }
+  Future<Iterable<K>> keys() => _lock.synchronized(() async {
+        _ensureInitialized();
+        // Take a snapshot of keys to avoid index shifting during iteration.
+        return List<K>.from(_activeBox.keys.cast<K>());
+      });
 
   @override
-  Future<Map<K, V>> entries() async {
-    _ensureInitialized();
-    debugPrint('Fetching all entries from Hive storage');
-
-    final result = <K, V>{};
-    for (final key in await keys()) {
-      final value = await get(key);
-      if (value != null) {
-        result[key] = value;
-      }
-    }
-
-    debugPrint('Fetched ${result.length} entries from Hive storage');
-    return result;
-  }
+  Future<Iterable<V>> values() => _lock.synchronized(() async {
+        _ensureInitialized();
+        final values = _activeBox.values;
+        if (serializer != null) {
+          return List<V>.from(
+              values.map((value) => serializer!.deserialize(value)).cast<V>());
+        }
+        return List<V>.from(values.cast<V>());
+      });
 
   @override
-  Future<bool> containsKey(K key) async {
-    _ensureInitialized();
-    return _activeBox.containsKey(key);
-  }
+  Future<Map<K, V>> entries() => _lock.synchronized(() async {
+        _ensureInitialized();
+        // Snapshot keys and read values inside the same lock to prevent
+        // concurrent modifications from shifting Hive's internal index.
+        final result = <K, V>{};
+        final keySnapshot = List<K>.from(_activeBox.keys.cast<K>());
+        for (final key in keySnapshot) {
+          final value = await _activeBox.get(key);
+          if (value != null) {
+            final deserialized = serializer != null
+                ? serializer!.deserialize(value)
+                : value as V;
+            result[key] = deserialized;
+          }
+        }
+        return result;
+      });
 
   @override
-  Future<int> length() async {
-    _ensureInitialized();
-    return _activeBox.length;
-  }
+  Future<bool> containsKey(K key) => _lock.synchronized(() async {
+        _ensureInitialized();
+        return _activeBox.containsKey(key);
+      });
+
+  @override
+  Future<int> length() => _lock.synchronized(() async {
+        _ensureInitialized();
+        return _activeBox.length;
+      });
 
   void _ensureInitialized() {
     if (!_isInitialized) {
@@ -205,5 +211,24 @@ class JsonStorageSerializer<T> implements StorageSerializer<T> {
   @override
   T deserialize(dynamic data) {
     return fromJson(data);
+  }
+}
+
+/// Simple async mutex to serialize access to a Hive box.
+///
+/// Hive's internal IndexableSkipList is not safe for concurrent
+/// read-while-write; interleaved operations can shift indices and
+/// cause [RangeError]. This lock ensures only one operation runs
+/// against the box at a time.
+class _AsyncLock {
+  Future<void> _last = Future.value();
+
+  Future<T> synchronized<T>(Future<T> Function() action) {
+    final prev = _last;
+    // Chain the new action after the previous one completes (or fails).
+    final completer = Completer<void>();
+    _last = completer.future;
+
+    return prev.then((_) => action()).whenComplete(completer.complete);
   }
 }

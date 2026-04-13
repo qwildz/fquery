@@ -95,5 +95,6 @@ class MutationObserver<TData, TError, TVariables, TContext>
       client.mutationCache.remove(_cacheId!);
       _cacheId = null;
     }
+    dispose();
   }
 }

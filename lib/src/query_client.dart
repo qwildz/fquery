@@ -150,22 +150,22 @@ class QueryClient {
   }
 
   void removeQueries(RawQueryKey key, {bool exact = false}) {
+    // Collect matching queries first to avoid modifying the map during iteration.
+    final toRemove = <Query>[];
     queryCache.queries.forEach((queryKey, query) {
-      void action() {
-        Future.delayed(Duration.zero, () async {
-          await queryCache.remove(query);
-        });
-      }
-
       if (exact) {
-        if (queryKey.serialized == QueryKey(key).serialized) action();
+        if (queryKey.serialized == QueryKey(key).serialized) {
+          toRemove.add(query);
+        }
       } else {
         final isPartialMatch = queryKey.raw.length >= key.length &&
             QueryKey(queryKey.raw.sublist(0, key.length)) == QueryKey(key);
-
-        if (isPartialMatch) action();
+        if (isPartialMatch) toRemove.add(query);
       }
     });
+    for (final query in toRemove) {
+      queryCache.remove(query);
+    }
   }
 
   int isFetching([RawQueryKey? queryKey, bool exact = false]) {

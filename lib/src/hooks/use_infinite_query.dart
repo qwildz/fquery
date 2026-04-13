@@ -179,15 +179,38 @@ UseInfiniteQueryResult<TData, TError, TPageParam>
     ],
   );
   final client = useQueryClient();
-  final observer = useMemoized(
-    () => InfiniteQueryObserver<TData, TError, TPageParam>(
+
+  final observerRef =
+      useRef<InfiniteQueryObserver<TData, TError, TPageParam>?>(null);
+  useEffect(() {
+    observerRef.value = InfiniteQueryObserver<TData, TError, TPageParam>(
       queryKey,
       queryFn,
       client: client,
       options: options,
-    ),
-    [QueryKey(queryKey)],
+    );
+    return;
+  }, [QueryKey(queryKey)]);
+
+  // Rebuild observer if the query is removed from the cache (e.g., GC).
+  final query = useListenableSelector(
+    client.queryCache,
+    () => client.queryCache.queries[QueryKey(queryKey)],
   );
+  useEffect(() {
+    if (query == null) {
+      observerRef.value = InfiniteQueryObserver<TData, TError, TPageParam>(
+        queryKey,
+        queryFn,
+        client: client,
+        options: options,
+      );
+    }
+    return;
+  }, [query]);
+
+  final observer =
+      observerRef.value as InfiniteQueryObserver<TData, TError, TPageParam>;
 
   // This subscribes to the observer
   // and rebuilds the widgets on updates.
@@ -231,7 +254,7 @@ UseInfiniteQueryResult<TData, TError, TPageParam>
     final firstPage = pages.first;
     final lastPage = pages.last;
     final pageParams = data.pageParams;
-    final firstPageParam = pageParams.last;
+    final firstPageParam = pageParams.first;
     final lastPageParam = pageParams.last;
 
     final nextPageParam = options.getNextPageParam(
@@ -241,7 +264,7 @@ UseInfiniteQueryResult<TData, TError, TPageParam>
       pageParams,
     );
 
-    final previousPageParam = options.getNextPageParam(
+    final previousPageParam = options.getPreviousPageParam?.call(
       firstPage,
       pages,
       firstPageParam,
