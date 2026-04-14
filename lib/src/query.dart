@@ -94,7 +94,7 @@ class Query<TData, TError> with Removable {
       case DispatchAction.error:
         return state.copyWith(
           status: QueryStatus.error,
-          error: data as TError,
+          error: data is TError ? data : null,
           errorUpdatedAt: DateTime.now(),
           isFetching: false,
           isInvalidated: false,
@@ -126,7 +126,7 @@ class Query<TData, TError> with Removable {
         return state.copyWith(
           isRefetchError: true,
           status: QueryStatus.error,
-          error: data as TError,
+          error: data is TError ? data : null,
           errorUpdatedAt: DateTime.now(),
           isFetching: false,
           isInvalidated: false,
