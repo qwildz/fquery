@@ -1,6 +1,21 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:fquery/fquery.dart';
+
+class _LifecycleObserver extends WidgetsBindingObserver {
+  final QueryClient client;
+  _LifecycleObserver(this.client);
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      client.onFocus();
+    }
+  }
+}
 
 class ChildWidgetWrapper extends HookWidget {
   final Widget child;
@@ -9,6 +24,8 @@ class ChildWidgetWrapper extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final client = useQueryClient();
+
+    // Garbage collection cleanup on unmount
     useEffect(() {
       return () {
         for (var entry in client.queryCache.queries.entries) {
@@ -17,6 +34,30 @@ class ChildWidgetWrapper extends HookWidget {
         }
       };
     }, []);
+
+    // App focus (lifecycle) detection
+    useEffect(() {
+      final observer = _LifecycleObserver(client);
+      WidgetsBinding.instance.addObserver(observer);
+      return () => WidgetsBinding.instance.removeObserver(observer);
+    }, [client]);
+
+    // Network reconnect detection
+    useEffect(() {
+      List<ConnectivityResult>? previousResult;
+      StreamSubscription<List<ConnectivityResult>>? subscription;
+      subscription = Connectivity().onConnectivityChanged.listen((results) {
+        final wasDisconnected = previousResult == null ||
+            previousResult!.every((r) => r == ConnectivityResult.none);
+        final isConnected = results.any((r) => r != ConnectivityResult.none);
+        if (wasDisconnected && isConnected) {
+          client.onReconnect();
+        }
+        previousResult = results;
+      });
+      return () => subscription?.cancel();
+    }, [client]);
+
     return child;
   }
 }

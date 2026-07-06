@@ -110,6 +110,10 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
       enabled: options.enabled,
       refetchOnMount:
           options.refetchOnMount ?? client.defaultQueryOptions.refetchOnMount,
+      refetchOnFocus:
+          options.refetchOnFocus ?? client.defaultQueryOptions.refetchOnFocus,
+      refetchOnReconnect: options.refetchOnReconnect ??
+          client.defaultQueryOptions.refetchOnReconnect,
       staleDuration:
           options.staleDuration ?? client.defaultQueryOptions.staleDuration,
       cacheDuration:
@@ -210,4 +214,30 @@ class Observer<TData, TError> extends ChangeNotifier with QueryListener {
     refetchTimer?.cancel();
     refetchTimer = Timer(options.refetchInterval as Duration, fetch);
   }
+
+  void _triggerRefetch(RefetchOnMount policy) {
+    if (!options.enabled) return;
+    switch (policy) {
+      case RefetchOnMount.always:
+        fetch();
+        break;
+      case RefetchOnMount.stale:
+        final dataUpdatedAt = query.state.dataUpdatedAt;
+        if (dataUpdatedAt == null) {
+          fetch();
+        } else {
+          final staleAt = dataUpdatedAt.add(options.staleDuration);
+          if (staleAt.isBefore(DateTime.now())) fetch();
+        }
+        break;
+      case RefetchOnMount.never:
+        break;
+    }
+  }
+
+  @override
+  void onFocus() => _triggerRefetch(options.refetchOnFocus);
+
+  @override
+  void onReconnect() => _triggerRefetch(options.refetchOnReconnect);
 }

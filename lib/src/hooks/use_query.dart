@@ -41,6 +41,8 @@ class UseQueryResult<TData, TError> {
 class UseQueryOptions<TData, TError> {
   final bool enabled;
   final RefetchOnMount? refetchOnMount;
+  final RefetchOnMount? refetchOnFocus;
+  final RefetchOnMount? refetchOnReconnect;
   final Duration? staleDuration;
   final Duration? cacheDuration;
   final Duration? refetchInterval;
@@ -51,6 +53,8 @@ class UseQueryOptions<TData, TError> {
   UseQueryOptions({
     required this.enabled,
     this.refetchOnMount,
+    this.refetchOnFocus,
+    this.refetchOnReconnect,
     this.staleDuration,
     this.cacheDuration,
     this.refetchInterval,
@@ -92,6 +96,8 @@ UseQueryResult<TData, TError> useQuery<TData, TError>(
   // These options must match with the `UseQueryOptions`
   bool enabled = true,
   RefetchOnMount? refetchOnMount,
+  RefetchOnMount? refetchOnFocus,
+  RefetchOnMount? refetchOnReconnect,
   Duration? staleDuration,
   Duration? cacheDuration,
   Duration? refetchInterval,
@@ -103,6 +109,8 @@ UseQueryResult<TData, TError> useQuery<TData, TError>(
     () => UseQueryOptions<TData, TError>(
       enabled: enabled,
       refetchOnMount: refetchOnMount,
+      refetchOnFocus: refetchOnFocus,
+      refetchOnReconnect: refetchOnReconnect,
       staleDuration: staleDuration,
       cacheDuration: cacheDuration,
       refetchInterval: refetchInterval,
@@ -113,6 +121,8 @@ UseQueryResult<TData, TError> useQuery<TData, TError>(
     [
       enabled,
       refetchOnMount,
+      refetchOnFocus,
+      refetchOnReconnect,
       staleDuration,
       cacheDuration,
       refetchInterval,

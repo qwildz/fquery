@@ -5,8 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:fquery/fquery.dart';
 import 'package:fquery/src/query.dart';
 import 'package:fquery/src/query_key.dart';
-import 'package:fquery/src/retry_resolver.dart';
 import 'package:fquery/src/query_listener.dart';
+import 'package:fquery/src/retry_resolver.dart';
 
 class InfiniteQueryOptions<TData, TError, TPageParam>
     extends QueryOptions<TData, TError> {
@@ -32,6 +32,8 @@ class InfiniteQueryOptions<TData, TError, TPageParam>
     this.maxPages,
     required super.enabled,
     required super.refetchOnMount,
+    required super.refetchOnFocus,
+    required super.refetchOnReconnect,
     required super.staleDuration,
     required super.cacheDuration,
     super.refetchInterval,
@@ -112,6 +114,10 @@ class InfiniteQueryObserver<TData, TError, TPageParam> extends ChangeNotifier
       enabled: options.enabled,
       refetchOnMount:
           options.refetchOnMount ?? client.defaultQueryOptions.refetchOnMount,
+      refetchOnFocus:
+          options.refetchOnFocus ?? client.defaultQueryOptions.refetchOnFocus,
+      refetchOnReconnect: options.refetchOnReconnect ??
+          client.defaultQueryOptions.refetchOnReconnect,
       staleDuration:
           options.staleDuration ?? client.defaultQueryOptions.staleDuration,
       cacheDuration:
@@ -341,4 +347,30 @@ class InfiniteQueryObserver<TData, TError, TPageParam> extends ChangeNotifier
     refetchTimer?.cancel();
     refetchTimer = Timer(options.refetchInterval as Duration, refetch);
   }
+
+  void _triggerRefetch(RefetchOnMount policy) {
+    if (!options.enabled) return;
+    switch (policy) {
+      case RefetchOnMount.always:
+        refetch();
+        break;
+      case RefetchOnMount.stale:
+        final dataUpdatedAt = query.state.dataUpdatedAt;
+        if (dataUpdatedAt == null) {
+          refetch();
+        } else {
+          final staleAt = dataUpdatedAt.add(options.staleDuration);
+          if (staleAt.isBefore(DateTime.now())) refetch();
+        }
+        break;
+      case RefetchOnMount.never:
+        break;
+    }
+  }
+
+  @override
+  void onFocus() => _triggerRefetch(options.refetchOnFocus);
+
+  @override
+  void onReconnect() => _triggerRefetch(options.refetchOnReconnect);
 }

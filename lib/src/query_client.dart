@@ -7,6 +7,8 @@ import 'query.dart';
 
 class DefaultQueryOptions {
   final RefetchOnMount refetchOnMount;
+  final RefetchOnMount refetchOnFocus;
+  final RefetchOnMount refetchOnReconnect;
   final Duration staleDuration;
   final Duration cacheDuration;
   final Duration? refetchInterval;
@@ -18,6 +20,8 @@ class DefaultQueryOptions {
 
   DefaultQueryOptions({
     this.refetchOnMount = RefetchOnMount.stale,
+    this.refetchOnFocus = RefetchOnMount.never,
+    this.refetchOnReconnect = RefetchOnMount.never,
     this.staleDuration = Duration.zero,
     this.cacheDuration = const Duration(minutes: 5),
     this.refetchInterval,
@@ -75,6 +79,24 @@ class QueryClient {
   Future<void> dispose() async {
     await queryCache.dispose();
     await mutationCache.dispose();
+  }
+
+  /// Notifies all active queries that the app has regained focus.
+  /// Queries with [refetchOnFocus] set to [RefetchOnMount.stale] or [RefetchOnMount.always]
+  /// will refetch accordingly.
+  void onFocus() {
+    for (final query in queryCache.queries.values) {
+      query.notifyFocus();
+    }
+  }
+
+  /// Notifies all active queries that network connectivity has been restored.
+  /// Queries with [refetchOnReconnect] set to [RefetchOnMount.stale] or [RefetchOnMount.always]
+  /// will refetch accordingly.
+  void onReconnect() {
+    for (final query in queryCache.queries.values) {
+      query.notifyReconnect();
+    }
   }
 
   /// Sets the query cache idendifiable by the given query key.

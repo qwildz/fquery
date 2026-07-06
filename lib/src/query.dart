@@ -31,6 +31,8 @@ enum RefetchOnMount {
 class QueryOptions<TData, TError> {
   final bool enabled;
   final RefetchOnMount refetchOnMount;
+  final RefetchOnMount refetchOnFocus;
+  final RefetchOnMount refetchOnReconnect;
   final Duration staleDuration;
   final Duration cacheDuration;
   final Duration? refetchInterval;
@@ -40,6 +42,8 @@ class QueryOptions<TData, TError> {
   QueryOptions({
     required this.enabled,
     required this.refetchOnMount,
+    required this.refetchOnFocus,
+    required this.refetchOnReconnect,
     required this.staleDuration,
     required this.cacheDuration,
     this.refetchInterval,
@@ -189,6 +193,18 @@ class Query<TData, TError> with Removable {
   void _notifyListeners() {
     for (var listener in _listeners) {
       listener.onQueryUpdated();
+    }
+  }
+
+  void notifyFocus() {
+    for (var listener in _listeners) {
+      listener.onFocus();
+    }
+  }
+
+  void notifyReconnect() {
+    for (var listener in _listeners) {
+      listener.onReconnect();
     }
   }
 
